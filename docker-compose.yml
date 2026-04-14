@@ -1,0 +1,18 @@
+# 单服务 / 单容器镜像（适配不支持多容器的平台：仅 build 本 Dockerfile 即可）
+services:
+  sqli-lab:
+    build: .
+    image: sqli-lab:latest
+    ports:
+      - "${SQli_LAB_PORT:-8080}:80"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_change_me}
+      MYSQL_APP_USER: ${MYSQL_APP_USER:-sqli_app}
+      MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD:-sqli_app_change_me}
+      MYSQL_ADMIN_USER: ${MYSQL_ADMIN_USER:-sqli_admin}
+      MYSQL_ADMIN_PASSWORD: ${MYSQL_ADMIN_PASSWORD:-sqli_admin_change_me}
+      RESET_TOKEN: ${RESET_TOKEN:-}
+      FLAG: ${FLAG:-}
+      DASFLAG: ${DASFLAG:-}
+      GZCTF_FLAG: ${GZCTF_FLAG:-}
+      STATIC_FLAG: ${STATIC_FLAG:-HelloCTF{sql_injection_lab}}

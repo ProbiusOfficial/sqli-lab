@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="system">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello-CTF - SQLi-labs</title>
+    <script>
+      (function () {
+        var pref = localStorage.getItem("sqliLabTheme") || "system";
+        document.documentElement.setAttribute("data-theme", pref);
+        var dark =
+          pref === "dark" ||
+          (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var l = document.createElement("link");
+        l.id = "hljsTheme";
+        l.rel = "stylesheet";
+        l.href =
+          "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/" +
+          (dark ? "github-dark" : "github") +
+          ".min.css";
+        document.head.appendChild(l);
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
+  </head>
+  <body>
+    <div class="app-wrap">
+      <header class="app-header">
+        <div class="brand">
+          <h1>Hello-CTF - SQLi-labs</h1>
+          <p class="sub">powered by hello-ctf.com</p>
+        </div>
+        <div class="header-actions">
+          <label class="lbl theme-lbl" for="themeSelect">主题</label>
+          <select id="themeSelect" class="theme-select" aria-label="界面主题">
+            <option value="system">跟随系统</option>
+            <option value="light">浅色</option>
+            <option value="dark">深色</option>
+          </select>
+          <button id="btnMode" type="button" class="btn btn-accent">切换为上帝模式</button>
+        </div>
+      </header>
+
+      <section class="card toolbar">
+        <div class="toolbar-row">
+          <label class="lbl" for="levelSelect">关卡</label>
+          <select id="levelSelect" class="ctl-wide"></select>
+          <span id="levelMeta" class="meta"></span>
+          <button id="btnPrev" type="button" class="btn ghost">上一关</button>
+          <button id="btnNext" type="button" class="btn ghost">下一关</button>
+        </div>
+        <div class="tabs" id="tabs">
+          <button type="button" data-tab="get" class="tab active">GET</button>
+          <button type="button" data-tab="post" class="tab">POST</button>
+          <button type="button" data-tab="cookie" class="tab">Cookie</button>
+          <button type="button" data-tab="headers" class="tab">Headers</button>
+        </div>
+        <div id="panel-get" class="panel active">
+          <label>id</label>
+          <input id="get_id" type="text" value="1" autocomplete="off" />
+        </div>
+        <div id="panel-post" class="panel">
+          <label>uname</label>
+          <input id="post_uname" type="text" autocomplete="off" />
+          <label>passwd</label>
+          <input id="post_passwd" type="text" autocomplete="off" />
+        </div>
+        <div id="panel-cookie" class="panel">
+          <label>uname（Cookie）</label>
+          <input id="cookie_uname" type="text" value="guest" autocomplete="off" />
+        </div>
+        <div id="panel-headers" class="panel">
+          <label>User-Agent</label>
+          <input id="hdr_ua" type="text" autocomplete="off" />
+          <label>Referer</label>
+          <input id="hdr_ref" type="text" autocomplete="off" />
+        </div>
+        <div class="toolbar-actions">
+          <button id="btnSubmit" type="button" class="btn primary">检索</button>
+        </div>
+      </section>
+
+      <div id="mainGrid" class="main-grid">
+        <main class="main-column">
+          <section class="card echo-card">
+            <h2 class="card-title">回显区域 <span class="muted">（不一定有）</span></h2>
+            <div class="echo-scroll">
+              <div id="echo" class="box echo-box"></div>
+            </div>
+          </section>
+          <section id="sourcePanel" class="card god-source-card hidden" aria-label="本关服务端源码">
+            <h2 class="card-title">本关服务端源码</h2>
+            <pre class="source-pre"><code id="sourceCode" class="language-python"></code></pre>
+          </section>
+        </main>
+
+        <aside id="godAside" class="god-aside hidden" aria-label="上帝模式诊断">
+          <div class="god-scroll">
+            <section class="card god-card">
+              <h3 class="card-title">SQL 预览（不执行）</h3>
+              <pre class="sql-pre mono-scroll"><code id="sqlPreview" class="language-sql"></code></pre>
+            </section>
+            <section class="card god-card">
+              <h3 class="card-title">实际执行 SQL</h3>
+              <pre class="sql-pre mono-scroll"><code id="sqlExec" class="language-sql"></code></pre>
+            </section>
+            <section class="card god-card">
+              <h3 class="card-title">数据库状态 / 耗时</h3>
+              <pre class="sql-pre mono-scroll"><code id="sqlMeta" class="language-json"></code></pre>
+            </section>
+          </div>
+        </aside>
+      </div>
+
+      <section id="terminalSection" class="card terminal-card hidden">
+        <h2 class="card-title">容器终端</h2>
+        <iframe id="ttyFrame" title="ttyd" src="about:blank"></iframe>
+      </section>
+
+      <footer class="card foot">
+        <span class="muted">重置数据库（需 <code>RESET_TOKEN</code>）：</span>
+        <input id="resetToken" type="password" placeholder="X-Reset-Token" autocomplete="off" class="ctl-token" />
+        <button id="btnReset" type="button" class="btn ghost">重置</button>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
