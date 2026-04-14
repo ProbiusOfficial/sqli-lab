@@ -13,17 +13,19 @@ from app.config import Config
 
 
 def _connect(**kwargs: Any) -> pymysql.connections.Connection:
-    return pymysql.connect(
-        host=Config.MYSQL_HOST,
-        port=Config.MYSQL_PORT,
-        user=Config.MYSQL_USER,
-        password=Config.MYSQL_PASSWORD,
-        database=Config.MYSQL_DATABASE,
-        charset="utf8mb4",
-        cursorclass=DictCursor,
-        autocommit=True,
-        **kwargs,
-    )
+    # 默认 utf8mb4；关卡可传入 charset（如宽字节关 GBK）覆盖，避免与固定参数重复传入
+    params: dict[str, Any] = {
+        "host": Config.MYSQL_HOST,
+        "port": Config.MYSQL_PORT,
+        "user": Config.MYSQL_USER,
+        "password": Config.MYSQL_PASSWORD,
+        "database": Config.MYSQL_DATABASE,
+        "charset": "utf8mb4",
+        "cursorclass": DictCursor,
+        "autocommit": True,
+    }
+    params.update(kwargs)
+    return pymysql.connect(**params)
 
 
 @contextmanager

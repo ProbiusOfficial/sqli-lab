@@ -1,12 +1,47 @@
 /* global fetch, hljs */
 
 const THEME_KEY = "sqliLabTheme";
+const GET_ID_URLDECODE_KEY = "sqliLabGetIdUrldecode";
+const SQL_EXEC_HEX_KEY = "sqliLabSqlExecHex";
 
 let levels = [];
 let mode = "practice"; // practice | god
 let previewTimer = null;
+/** 最近一次上帝模式检索返回的 executed_sql（latin-1 展示串，与下发字节一一对应） */
+let lastGodExecutedSql = "";
 
 const $ = (id) => document.getElementById(id);
+
+/**
+ * 将字面量 %XX 转为对应单字节字符（Unicode 码位 0–255），
+ * 与 Python latin-1 / 宽字节题一致；不用 decodeURIComponent（按 UTF-8 且孤立的 %df 会报错）。
+ */
+function percentDecodeToByteString(s) {
+  const parts = [];
+  let i = 0;
+  while (i < s.length) {
+    if (s[i] === "%" && i + 2 < s.length) {
+      const hex = s.slice(i + 1, i + 3);
+      if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+        parts.push(String.fromCharCode(parseInt(hex, 16)));
+        i += 3;
+        continue;
+      }
+    }
+    parts.push(s[i]);
+    i += 1;
+  }
+  return parts.join("");
+}
+
+function resolvedGetId() {
+  const raw = $("get_id").value;
+  const dec = $("get_id_urldecode");
+  if (dec && dec.checked) {
+    return percentDecodeToByteString(raw);
+  }
+  return raw;
+}
 
 function getThemePreference() {
   return localStorage.getItem(THEME_KEY) || "system";
@@ -44,6 +79,49 @@ function hljsTry(el) {
   }
 }
 
+function latin1StringToBytes(s) {
+  const u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    u[i] = c > 255 ? 0x3f : c;
+  }
+  return u;
+}
+
+function bytesToHexGrouped(u8, perLine = 24) {
+  const lines = [];
+  for (let i = 0; i < u8.length; i += perLine) {
+    const chunk = u8.subarray(i, i + perLine);
+    lines.push(Array.from(chunk, (b) => b.toString(16).padStart(2, "0")).join(" "));
+  }
+  return lines.join("\n");
+}
+
+function isSqlExecHexMode() {
+  const c = $("sqlExecHex");
+  return Boolean(c && c.checked);
+}
+
+function paintSqlExec() {
+  const execEl = $("sqlExec");
+  if (!execEl) return;
+  execEl.removeAttribute("data-highlighted");
+  if (!lastGodExecutedSql) {
+    execEl.textContent = "";
+    execEl.className = "language-sql";
+    return;
+  }
+  if (isSqlExecHexMode()) {
+    execEl.className = "exec-hex";
+    const u8 = latin1StringToBytes(lastGodExecutedSql);
+    execEl.textContent = bytesToHexGrouped(u8);
+  } else {
+    execEl.className = "language-sql";
+    execEl.textContent = lastGodExecutedSql;
+    hljsTry(execEl);
+  }
+}
+
 function rehighlightVisibleCode() {
   if (mode === "god") {
     const sp = $("sqlPreview");
@@ -51,10 +129,14 @@ function rehighlightVisibleCode() {
       sp.className = "language-sql";
       hljsTry(sp);
     }
-    const se = $("sqlExec");
-    if (se && se.textContent.trim()) {
-      se.className = "language-sql";
-      hljsTry(se);
+    if (lastGodExecutedSql) {
+      paintSqlExec();
+    } else {
+      const se = $("sqlExec");
+      if (se && se.textContent.trim()) {
+        se.className = "language-sql";
+        hljsTry(se);
+      }
     }
     const sm = $("sqlMeta");
     if (sm && sm.textContent.trim()) {
@@ -120,6 +202,7 @@ function setMode(next) {
     resetSqlCode("sqlPreview", "language-sql");
     resetSqlCode("sqlExec", "language-sql");
     resetSqlCode("sqlMeta", "language-json");
+    lastGodExecutedSql = "";
     resetSourceCode();
   }
 }
@@ -132,7 +215,7 @@ function buildPayload() {
   return {
     level: activeLevelId(),
     mode,
-    get: { id: $("get_id").value },
+    get: { id: resolvedGetId() },
     post: { uname: $("post_uname").value, passwd: $("post_passwd").value },
     cookie: { uname: $("cookie_uname").value },
     headers: {
@@ -221,11 +304,8 @@ async function submit() {
   $("echo").innerHTML = data.echo_html || "";
 
   if (mode === "god") {
-    const execEl = $("sqlExec");
-    execEl.className = "language-sql";
-    execEl.removeAttribute("data-highlighted");
-    execEl.textContent = data.executed_sql || "";
-    hljsTry(execEl);
+    lastGodExecutedSql = data.executed_sql || "";
+    paintSqlExec();
 
     const metaEl = $("sqlMeta");
     let metaText = "";
@@ -292,10 +372,23 @@ function wireInputsPreview() {
       if (mode === "god") schedulePreview();
     });
   }
+  $("get_id_urldecode").addEventListener("change", () => {
+    localStorage.setItem(GET_ID_URLDECODE_KEY, $("get_id_urldecode").checked ? "1" : "0");
+    if (mode === "god") schedulePreview();
+  });
+
+  const hexCb = $("sqlExecHex");
+  hexCb.checked = localStorage.getItem(SQL_EXEC_HEX_KEY) === "1";
+  hexCb.addEventListener("change", () => {
+    localStorage.setItem(SQL_EXEC_HEX_KEY, hexCb.checked ? "1" : "0");
+    if (mode === "god") paintSqlExec();
+  });
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
   wireTabs();
+  const urlDec = $("get_id_urldecode");
+  urlDec.checked = localStorage.getItem(GET_ID_URLDECODE_KEY) === "1";
   wireInputsPreview();
 
   const themeSel = $("themeSelect");

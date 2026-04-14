@@ -58,6 +58,10 @@
         <div id="panel-get" class="panel active">
           <label>id</label>
           <input id="get_id" type="text" value="1" autocomplete="off" />
+          <label class="inline-check">
+            <input id="get_id_urldecode" type="checkbox" />
+            <span>启用 URL 解码</span>
+          </label>
         </div>
         <div id="panel-post" class="panel">
           <label>uname</label>
@@ -101,7 +105,13 @@
               <pre class="sql-pre mono-scroll"><code id="sqlPreview" class="language-sql"></code></pre>
             </section>
             <section class="card god-card">
-              <h3 class="card-title">实际执行 SQL</h3>
+              <div class="god-sql-exec-head">
+                <h3 class="card-title god-sql-exec-title">实际执行 SQL</h3>
+                <label class="inline-check god-inline-check">
+                  <input type="checkbox" id="sqlExecHex" />
+                  <span>展示原始数据</span>
+                </label>
+              </div>
               <pre class="sql-pre mono-scroll"><code id="sqlExec" class="language-sql"></code></pre>
             </section>
             <section class="card god-card">

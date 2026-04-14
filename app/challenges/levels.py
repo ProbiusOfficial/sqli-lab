@@ -221,36 +221,43 @@ class L6(Challenge):
         FLAG_HINT,
         "连接使用 GBK；服务端对输入做 addslashes 风格转义。",
         "思考 %df 与反斜杠如何吞掉转义，使单引号重新获得语法意义。",
+        "默认回显我们使用Latin-1编码,所以无法展现效果，你可以尝试勾选展示原始数据，这样在 hex 里可以直接看到例如 df 5c 这类字节对，和「Latin-1 里仍显示成 ß + \」对照，更容易理解 GBK 线宽字节吃反斜杠的现象。"
+        "可以使用cyberchef from hex（recipe=From_Hex('Auto')&oenc=936&ieol=CRLF&oeol=CRLF） 后显示为gbk编码；"
     ]
 
     @staticmethod
-    def _addslashes_latin1(s: str) -> str:
-        b = s.encode("latin-1", errors="replace")
+    def _addslashes_bytes(data: bytes) -> bytes:
         out = bytearray()
-        for c in b:
+        for c in data:
             if c in (0x27, 0x22, 0x5C, 0):
                 out.append(0x5C)
             out.append(c)
-        return out.decode("latin-1", errors="replace")
+        return bytes(out)
+
+    def _build_sql_bytes(self, ctx: InjectionContext) -> bytes:
+        raw = ctx.get_param("id", "1")
+        raw_b = raw.encode("latin-1", errors="replace")
+        esc_b = self._addslashes_bytes(raw_b)
+        prefix = (
+            f"SELECT {USERS_SELECT} FROM `{self.schema}`.`users` WHERE id='"
+        ).encode("ascii")
+        return prefix + esc_b + b"' LIMIT 50"
 
     def build_sql(self, ctx: InjectionContext) -> str:
-        raw = ctx.get_param("id", "1")
-        esc = self._addslashes_latin1(raw)
-        return (
-            f"SELECT {USERS_SELECT} FROM `{self.schema}`.`users` "
-            f"WHERE id='{esc}' LIMIT 50"
-        )
+        # 与下发字节一致的一一对应展示（便于上帝模式对照）
+        return self._build_sql_bytes(ctx).decode("latin-1")
 
     def run(self, ctx: InjectionContext) -> dict[str, Any]:
-        sql = self.build_sql(ctx)
+        sql_b = self._build_sql_bytes(ctx)
+        sql_display = sql_b.decode("latin-1")
         t0 = time.perf_counter()
-        err = None
-        rows = None
+        err: dict[str, Any] | None = None
+        rows: list[dict[str, Any]] | None = None
         rowcount = 0
         try:
             with get_conn(charset="gbk", init_command="SET NAMES gbk") as conn:
                 with conn.cursor() as cur:
-                    cur.execute(sql)
+                    cur.execute(sql_b)
                     rows = cur.fetchall()  # type: ignore[assignment]
                     rowcount = cur.rowcount
         except Exception as e:  # noqa: BLE001
@@ -258,10 +265,10 @@ class L6(Challenge):
             if isinstance(e, pymysql.err.OperationalError) and getattr(e, "args", None):
                 err["errno"] = e.args[0]
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
-        echo = self.render_echo(ctx, sql, rows, err)
+        echo = self.render_echo(ctx, sql_display, rows, err)
         return {
             "echo_html": echo,
-            "executed_sql": sql,
+            "executed_sql": sql_display,
             "elapsed_ms": round(elapsed_ms, 3),
             "rowcount": rowcount,
             "mysql": err,

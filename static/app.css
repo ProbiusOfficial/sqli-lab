@@ -219,6 +219,30 @@ body {
   color: var(--muted);
 }
 
+.inline-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+  max-width: 640px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.inline-check input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.inline-check code {
+  font-size: 0.78rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
 input[type="text"],
 input[type="password"],
 select {
@@ -321,6 +345,35 @@ select {
 
 .god-card {
   padding: 12px 14px;
+}
+
+.god-sql-exec-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.god-sql-exec-title {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 8rem;
+}
+
+.god-inline-check {
+  margin-top: 0;
+  max-width: 100%;
+  flex: 1 1 220px;
+}
+
+code.exec-hex {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .mono-scroll {
